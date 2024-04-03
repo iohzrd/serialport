@@ -1,0 +1,24 @@
+use crate::SerialPort;
+use jni_sys::*;
+
+// ANCHOR: api
+foreign_typemap!(
+    ($p:r_type) Vec<i8> <= jbyteArray {
+        let jni_arr = JavaByteArray::new(env, $p);
+        $out = jni_arr.to_slice().to_vec();
+    };
+    (f_type, unique_prefix = "/*Vec<i8>*/") <= "/*Vec<i8>*/byte []";
+);
+
+foreign_class!(class SerialPort {
+    self_type SerialPort;
+    constructor SerialPort::new(path: &str, baud: i32) -> SerialPort;
+    fn SerialPort::open(&mut self) -> bool;
+    fn SerialPort::close(&mut self) -> bool;
+    fn SerialPort::bytes_to_read(&mut self) -> i32;
+    fn SerialPort::read(&mut self, length: i32) -> Vec<i8>;
+    fn SerialPort::read_exact(&mut self, length: i32) -> Vec<i8>;
+    fn SerialPort::read_to_eol(&mut self) -> Vec<i8>;
+    fn SerialPort::write(&mut self, buf: Vec<i8>) -> i32;
+});
+// ANCHOR_END: api

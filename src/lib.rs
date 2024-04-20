@@ -2,6 +2,7 @@ mod java_glue;
 pub use crate::java_glue::*;
 use log::info;
 use serialport;
+use std::path::Path;
 use std::time::Duration;
 
 fn vec_i8_into_u8(v: Vec<i8>) -> Vec<u8> {
@@ -37,16 +38,24 @@ impl SerialPort {
         log_panics::init(); // log panics rather than printing them
         info!("init log system - done");
         SerialPort {
-            path: Some(path.to_string()),
-            port: match serialport::new(path, baud as u32)
-                .data_bits(serialport::DataBits::Eight)
-                .parity(serialport::Parity::None)
-                .stop_bits(serialport::StopBits::Two)
-                .timeout(Duration::from_millis(1000))
-                .open()
-            {
-                Ok(p) => Some(p),
-                Err(_) => None,
+            path: match Path::new(path).exists() {
+                false => None,
+                true => Some(path.to_string()),
+            },
+            port: match Path::new(path).exists() {
+                false => None,
+                true => {
+                    match serialport::new(path, baud as u32)
+                        .data_bits(serialport::DataBits::Eight)
+                        .parity(serialport::Parity::None)
+                        .stop_bits(serialport::StopBits::Two)
+                        .timeout(Duration::from_millis(1000))
+                        .open()
+                    {
+                        Err(_) => None,
+                        Ok(p) => Some(p),
+                    }
+                }
             },
         }
     }
@@ -55,17 +64,24 @@ impl SerialPort {
         match self.port {
             Some(_) => true,
             None => match self.path.clone() {
-                Some(path) => {
-                    let builder = serialport::new(path, 9600);
-                    match builder.open() {
-                        Ok(p) => {
-                            self.port = Some(p);
-                            true
-                        }
-                        _ => false,
-                    }
-                }
                 None => false,
+                Some(path) => match Path::new(&path).exists() {
+                    false => return false,
+                    true => {
+                        let builder = serialport::new(&path, 9600)
+                            .data_bits(serialport::DataBits::Eight)
+                            .parity(serialport::Parity::None)
+                            .stop_bits(serialport::StopBits::Two)
+                            .timeout(Duration::from_millis(1000));
+                        match builder.open() {
+                            Ok(p) => {
+                                self.port = Some(p);
+                                true
+                            }
+                            _ => false,
+                        }
+                    }
+                },
             },
         }
     }

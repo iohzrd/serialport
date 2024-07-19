@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         }
         String path = "/dev/ttyS0";
         Log.e(TAG, "path: " + path);
-        mSerialPort = new SerialPort(path, 9600);
+        mSerialPort = new SerialPort(path, 9600, 1);
         mSerialPort.open();
         byte[] sync = new byte[] { /* you're test bytes here... */ };
         Thread thread = new Thread() {

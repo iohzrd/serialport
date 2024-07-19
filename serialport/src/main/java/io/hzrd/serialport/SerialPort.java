@@ -4,10 +4,10 @@ import android.support.annotation.NonNull;
 
 public final class SerialPort {
 
-    public SerialPort(@NonNull String path, int baud) {
-        mNativeObj = init(path, baud);
+    public SerialPort(@NonNull String path, int baud_rate, int stop_bits) {
+        mNativeObj = init(path, baud_rate, stop_bits);
     }
-    private static native long init(@NonNull String path, int baud);
+    private static native long init(@NonNull String path, int baud_rate, int stop_bits);
 
     public final boolean open() {
         boolean ret = do_open(mNativeObj);

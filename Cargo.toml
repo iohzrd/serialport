@@ -11,8 +11,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 log = "0.4"
-log-panics = "2"
-android_logger = { version = "0.13", default-features = false }
 jni-sys = "0.3"
 serialport = "4"
 

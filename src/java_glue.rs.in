@@ -12,7 +12,7 @@ foreign_typemap!(
 
 foreign_class!(class SerialPort {
     self_type SerialPort;
-    constructor SerialPort::new(path: &str, baud: i32) -> SerialPort;
+    constructor SerialPort::new(path: &str, baud_rate: i32, stop_bits: i32) -> SerialPort;
     fn SerialPort::open(&mut self) -> bool;
     fn SerialPort::close(&mut self) -> bool;
     fn SerialPort::bytes_to_read(&mut self) -> i32;

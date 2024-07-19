@@ -1,6 +1,5 @@
 mod java_glue;
 pub use crate::java_glue::*;
-use log::info;
 use serialport;
 use std::path::Path;
 use std::time::Duration;
@@ -25,30 +24,33 @@ fn vec_u8_into_i8(v: Vec<u8>) -> Vec<i8> {
 struct SerialPort {
     path: Option<String>,
     port: Option<Box<dyn serialport::SerialPort>>,
+    stop_bits: serialport::StopBits,
 }
 
 impl SerialPort {
-    pub fn new(path: &str, baud: i32) -> SerialPort {
-        #[cfg(target_os = "android")]
-        android_logger::init_once(
-            android_logger::Config::default()
-                .with_max_level(log::LevelFilter::Debug)
-                .with_tag("SerialPort"),
-        );
-        log_panics::init(); // log panics rather than printing them
-        info!("init log system - done");
+    pub fn new(path: &str, baud_rate: i32, stop_bits: i32) -> SerialPort {
         SerialPort {
             path: match Path::new(path).exists() {
                 false => None,
                 true => Some(path.to_string()),
             },
+            stop_bits: match stop_bits {
+                1 => serialport::StopBits::One,
+                2 => serialport::StopBits::Two,
+                _ => serialport::StopBits::One,
+            },
             port: match Path::new(path).exists() {
                 false => None,
                 true => {
-                    match serialport::new(path, baud as u32)
+                    let stop_bits = match stop_bits {
+                        1 => serialport::StopBits::One,
+                        2 => serialport::StopBits::Two,
+                        _ => serialport::StopBits::One,
+                    };
+                    match serialport::new(path, baud_rate as u32)
                         .data_bits(serialport::DataBits::Eight)
                         .parity(serialport::Parity::None)
-                        .stop_bits(serialport::StopBits::Two)
+                        .stop_bits(stop_bits)
                         .timeout(Duration::from_millis(1000))
                         .open()
                     {
@@ -71,7 +73,7 @@ impl SerialPort {
                         let builder = serialport::new(&path, 9600)
                             .data_bits(serialport::DataBits::Eight)
                             .parity(serialport::Parity::None)
-                            .stop_bits(serialport::StopBits::Two)
+                            .stop_bits(self.stop_bits)
                             .timeout(Duration::from_millis(1000));
                         match builder.open() {
                             Ok(p) => {

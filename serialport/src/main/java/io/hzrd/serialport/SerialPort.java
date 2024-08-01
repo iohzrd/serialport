@@ -4,10 +4,10 @@ import android.support.annotation.NonNull;
 
 public final class SerialPort {
 
-    public SerialPort(@NonNull String path, int baud_rate, int stop_bits) {
-        mNativeObj = init(path, baud_rate, stop_bits);
+    public SerialPort(@NonNull String path, int baud_rate, int data_bits, int flow_control, int parity, int stop_bits, int timeout) {
+        mNativeObj = init(path, baud_rate, data_bits, flow_control, parity, stop_bits, timeout);
     }
-    private static native long init(@NonNull String path, int baud_rate, int stop_bits);
+    private static native long init(@NonNull String path, int baud_rate, int data_bits, int flow_control, int parity, int stop_bits, int timeout);
 
     public final boolean open() {
         boolean ret = do_open(mNativeObj);
@@ -30,6 +30,13 @@ public final class SerialPort {
     }
     private static native int do_bytes_to_read(long self);
 
+    public final int flow_control() {
+        int ret = do_flow_control(mNativeObj);
+
+        return ret;
+    }
+    private static native int do_flow_control(long self);
+
     public final byte [] read(int length) {
         byte [] ret = do_read(mNativeObj, length);
 
@@ -50,6 +57,34 @@ public final class SerialPort {
         return ret;
     }
     private static native byte [] do_read_to_eol(long self);
+
+    public final boolean read_carrier_detect() {
+        boolean ret = do_read_carrier_detect(mNativeObj);
+
+        return ret;
+    }
+    private static native boolean do_read_carrier_detect(long self);
+
+    public final boolean read_clear_to_send() {
+        boolean ret = do_read_clear_to_send(mNativeObj);
+
+        return ret;
+    }
+    private static native boolean do_read_clear_to_send(long self);
+
+    public final boolean read_data_set_ready() {
+        boolean ret = do_read_data_set_ready(mNativeObj);
+
+        return ret;
+    }
+    private static native boolean do_read_data_set_ready(long self);
+
+    public final boolean read_ring_indicator() {
+        boolean ret = do_read_ring_indicator(mNativeObj);
+
+        return ret;
+    }
+    private static native boolean do_read_ring_indicator(long self);
 
     public final int write(@NonNull byte [] buf) {
         int ret = do_write(mNativeObj, buf);

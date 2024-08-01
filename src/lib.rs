@@ -1,6 +1,6 @@
 mod java_glue;
 pub use crate::java_glue::*;
-use serialport;
+use serialport::{self, FlowControl};
 use std::path::Path;
 use std::time::Duration;
 
@@ -24,41 +24,54 @@ fn vec_u8_into_i8(v: Vec<u8>) -> Vec<i8> {
 struct SerialPort {
     path: Option<String>,
     port: Option<Box<dyn serialport::SerialPort>>,
+    baud_rate: u32,
+    data_bits: serialport::DataBits,
+    flow_control: serialport::FlowControl,
+    parity: serialport::Parity,
     stop_bits: serialport::StopBits,
+    timeout: u64
 }
 
 impl SerialPort {
-    pub fn new(path: &str, baud_rate: i32, stop_bits: i32) -> SerialPort {
+    pub fn new(
+        path: &str,
+        baud_rate: i32,
+        data_bits: i32,
+        flow_control: i32,
+        parity: i32,
+        stop_bits: i32,
+        timeout: i32,
+    ) -> SerialPort {
         SerialPort {
             path: match Path::new(path).exists() {
                 false => None,
                 true => Some(path.to_string()),
+            },
+            baud_rate: baud_rate as u32,
+            data_bits: match data_bits {
+                5 => serialport::DataBits::Five,
+                6 => serialport::DataBits::Six,
+                7 => serialport::DataBits::Seven,
+                8 => serialport::DataBits::Eight,
+                _ => serialport::DataBits::Eight,
+            },
+            flow_control: match flow_control {
+                1 => serialport::FlowControl::Software,
+                2 => serialport::FlowControl::Hardware,
+                _ => serialport::FlowControl::None,
+            },
+            parity: match parity {
+                1 => serialport::Parity::Odd,
+                2 => serialport::Parity::Even,
+                _ => serialport::Parity::None,
             },
             stop_bits: match stop_bits {
                 1 => serialport::StopBits::One,
                 2 => serialport::StopBits::Two,
                 _ => serialport::StopBits::One,
             },
-            port: match Path::new(path).exists() {
-                false => None,
-                true => {
-                    let stop_bits = match stop_bits {
-                        1 => serialport::StopBits::One,
-                        2 => serialport::StopBits::Two,
-                        _ => serialport::StopBits::One,
-                    };
-                    match serialport::new(path, baud_rate as u32)
-                        .data_bits(serialport::DataBits::Eight)
-                        .parity(serialport::Parity::None)
-                        .stop_bits(stop_bits)
-                        .timeout(Duration::from_millis(1000))
-                        .open()
-                    {
-                        Err(_) => None,
-                        Ok(p) => Some(p),
-                    }
-                }
-            },
+            timeout: timeout as u64,
+            port: None,
         }
     }
 
@@ -70,11 +83,12 @@ impl SerialPort {
                 Some(path) => match Path::new(&path).exists() {
                     false => return false,
                     true => {
-                        let builder = serialport::new(&path, 9600)
-                            .data_bits(serialport::DataBits::Eight)
-                            .parity(serialport::Parity::None)
+                        let builder = serialport::new(&path, self.baud_rate)
+                            .data_bits(self.data_bits)
+                            .flow_control(self.flow_control)
+                            .parity(self.parity)
                             .stop_bits(self.stop_bits)
-                            .timeout(Duration::from_millis(1000));
+                            .timeout(Duration::from_millis(self.timeout));
                         match builder.open() {
                             Ok(p) => {
                                 self.port = Some(p);
@@ -99,6 +113,20 @@ impl SerialPort {
         match self.port.as_mut() {
             Some(p) => match p.bytes_to_read() {
                 Ok(n) => n as i32,
+                _ => 0,
+            },
+            _ => 0,
+        }
+    }
+
+    pub fn flow_control(&mut self) -> i32 {
+        match self.port.as_mut() {
+            Some(p) => match p.flow_control() {
+                Ok(n) => match n {
+                    FlowControl::None => 0,
+                    FlowControl::Software => 1,
+                    FlowControl::Hardware => 2,
+                },
                 _ => 0,
             },
             _ => 0,
@@ -136,6 +164,42 @@ impl SerialPort {
             _ => {}
         };
         vec_u8_into_i8(vec)
+    }
+
+    pub fn read_carrier_detect(&mut self) -> bool {
+        match self.port.as_mut() {
+            Some(p) => match p.read_carrier_detect() {
+                val => val.unwrap_or(false),
+            },
+            _ => false,
+        }
+    }
+
+    pub fn read_clear_to_send(&mut self) -> bool {
+        match self.port.as_mut() {
+            Some(p) => match p.read_clear_to_send() {
+                val => val.unwrap_or(false),
+            },
+            _ => false,
+        }
+    }
+
+    pub fn read_data_set_ready(&mut self) -> bool {
+        match self.port.as_mut() {
+            Some(p) => match p.read_data_set_ready() {
+                val => val.unwrap_or(false),
+            },
+            _ => false,
+        }
+    }
+
+    pub fn read_ring_indicator(&mut self) -> bool {
+        match self.port.as_mut() {
+            Some(p) => match p.read_ring_indicator() {
+                val => val.unwrap_or(false),
+            },
+            _ => false,
+        }
     }
 
     pub fn write(&mut self, buf: Vec<i8>) -> i32 {
